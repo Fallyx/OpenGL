@@ -86,14 +86,17 @@ namespace OpenGL
                     {
                        0.0f, -0.5f, 0.0f,
                        0.5f,  0.5f, 0.0f,
-                      -0.5f,  0.5f, 0.0f
+                      -0.5f,  0.5f, 0.0f,
+                       0.0f,  0.7f, 0.0f,
+                       0.5f,  0.6f, 0.0f,
+                      -0.5f,  0.6f, 0.0f
                     };
                     var vboTriangleVertices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboTriangleVertices);
                     GL.BufferData(BufferTarget.ArrayBuffer, triangleVertices.Length * sizeof(float), triangleVertices, BufferUsageHint.StaticDraw);
 
                     // upload model indices to a vbo
-                    triangleIndices = new int[] { 0, 1, 2 };
+                    triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
                     vboTriangleIndices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);

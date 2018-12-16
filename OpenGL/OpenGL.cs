@@ -15,6 +15,8 @@ namespace OpenGL
             {
                 int hProgram = 0;
 
+                float alpha = 0f;
+
                 int vaoTriangle = 0;
                 int[] triangleIndices = null;
                 int vboTriangleIndices = 0;
@@ -26,10 +28,11 @@ namespace OpenGL
                     //set up opengl
                     GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
-                    //GL.ClearDepth(1);
+                    GL.ClearDepth(1);
                     //GL.Disable(EnableCap.DepthTest);
-                    //GL.DepthFunc(DepthFunction.Less);
-                    //GL.Disable(EnableCap.CullFace);
+                    GL.DepthFunc(DepthFunction.Less);
+                    GL.Enable(EnableCap.CullFace);
+                    GL.CullFace(CullFaceMode.Front);
 
                     //load, compile and link shaders
                     //see https://www.khronos.org/opengl/wiki/Vertex_Shader
@@ -37,15 +40,21 @@ namespace OpenGL
                         #version 400 core
 
                         in vec3 pos;
+                        in vec3 colors;
+                        
+                        uniform mat4 m;
+                        uniform mat4 proj;
+
                         uniform float time;
-                        out float someFloat;
+                        out vec3 vColors;
 
                         void main()
                         {
-                          gl_Position = vec4(pos, 1.0) + vec4(sin(time) * 0.5, cos(time) * 0.5, 0.0, 0.0);
-                          someFloat = pos.x + 0.5;
+                            vColors = colors;
+                            gl_Position =  proj * vec4(pos,1);
                         }
                         ";
+
                     var hVertexShader = GL.CreateShader(ShaderType.VertexShader);
                     GL.ShaderSource(hVertexShader, VertexShaderSource);
                     GL.CompileShader(hVertexShader);
@@ -57,12 +66,12 @@ namespace OpenGL
                     var FragmentShaderSource = @"
                         #version 400 core
 
-                        out vec4 colour;
-                        in float someFloat;
+                        in vec3 vColors;
+                        out vec4 color;
 
                         void main()
                         {
-                          colour = vec4(someFloat, 0.75, 0.0, 1.0);
+                            color = vec4(vColors, 1.0);
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
@@ -82,24 +91,65 @@ namespace OpenGL
                         throw new Exception(GL.GetProgramInfoLog(hProgram));
 
                     //upload model vertices to a vbo
+
                     var triangleVertices = new float[]
                     {
-                       0.0f, -0.5f, 0.0f,
-                       0.5f,  0.5f, 0.0f,
-                      -0.5f,  0.5f, 0.0f,
-                       0.0f,  0.7f, 0.0f,
-                       0.5f,  0.6f, 0.0f,
-                      -0.5f,  0.6f, 0.0f
+                        // top
+                        -1, -1, -1,
+                        +1, -1, -1,
+                        +1, +1, -1,
+                        -1, +1, -1,
+
+                        // bottom
+                        -1, -1, +1,
+                        +1, -1, +1,
+                        +1, +1, +1,
+                        -1, +1, +1
                     };
+
                     var vboTriangleVertices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboTriangleVertices);
                     GL.BufferData(BufferTarget.ArrayBuffer, triangleVertices.Length * sizeof(float), triangleVertices, BufferUsageHint.StaticDraw);
-
+                    
                     // upload model indices to a vbo
-                    triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
+                    triangleIndices = new int[]
+                    {
+                        0, 2, 3,
+                        0, 1, 2, // top
+                        7, 5, 4,
+                        7, 6, 5, // bottom
+                        0, 7, 4,
+                        0, 3, 7, // left
+                        2, 5, 6,
+                        2, 1, 5, // right
+                        3, 6, 7,
+                        3, 2, 6, // front
+                        1, 4, 5,
+                        1, 0, 4, // back
+                    };
+                    
+                    //triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
                     vboTriangleIndices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
+                    
+                    var colors = new float[]
+                    {
+                        1, 0, 0,
+                        1, 0, 0,
+                        0, 1, 0,
+                        0, 1, 0,
+
+                        0, 0, 1,
+                        0, 0, 1,
+                        0, 0, 0,
+                        0, 0, 0
+                    };
+                    
+
+                    var vboColor = GL.GenBuffer();
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
+                    GL.BufferData(BufferTarget.ArrayBuffer, colors.Length * sizeof(float), colors, BufferUsageHint.StaticDraw);
 
                     //set up a vao
                     vaoTriangle = GL.GenVertexArray();
@@ -110,6 +160,14 @@ namespace OpenGL
                         GL.EnableVertexAttribArray(posAttribIndex);
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboTriangleVertices);
                         GL.VertexAttribPointer(posAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
+                    }
+
+                    var colAttribIndex = GL.GetAttribLocation(hProgram, "colors");
+                    if(colAttribIndex != -1)
+                    {
+                        GL.EnableVertexAttribArray(colAttribIndex);
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
+                        GL.VertexAttribPointer(colAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
 
                     //check for errors during all previous calls
@@ -123,6 +181,7 @@ namespace OpenGL
                     //perform logic
 
                     time += fea.Time;
+                    alpha += 0.01f;
                 };
 
                 w.RenderFrame += (o, fea) =>
@@ -136,6 +195,26 @@ namespace OpenGL
                     if (timeUniformIndex != -1)
                         GL.Uniform1(timeUniformIndex, (float)time);
 
+                    var scale = Matrix4.CreateScale(0.5f);
+                    var rotateY = Matrix4.CreateRotationY(alpha);
+                    var zTrans = Matrix4.CreateTranslation(0f, 0f, -5f);
+                    var perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
+
+                    var M = scale * rotateY * zTrans;
+
+                    var mAttribIndex = GL.GetUniformLocation(hProgram, "m");
+                    if(mAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(mAttribIndex, false, ref M);
+                    }
+
+                    M *= perspective;
+                    var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
+                    if (projAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                    }
+
                     //model-view-projection matrix (not yet used)
                     var mvp =
                         //model
@@ -146,6 +225,39 @@ namespace OpenGL
 
                         //projection
                         * Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
+
+                    //render our model
+                    GL.BindVertexArray(vaoTriangle);
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
+                    GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+
+
+                    var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
+                    var rotateX = Matrix4.CreateRotationX(alpha);
+
+                    M = translate * scale * rotateX * zTrans * perspective;
+
+                    projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
+                    if (projAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                    }
+
+                    //render our model
+                    GL.BindVertexArray(vaoTriangle);
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
+                    GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+
+                    translate = Matrix4.CreateTranslation(3f, 0, 0f);
+                    rotateX = Matrix4.CreateRotationX(-alpha);
+
+                    M = translate * scale * rotateX * zTrans * perspective;
+
+                    projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
+                    if (projAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                    }
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);

@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Drawing;
 using OpenTK;                  //add "OpenTK" as NuGet reference
 using OpenTK.Graphics.OpenGL4; //add "OpenTK" as NuGet reference
+using System.Drawing.Imaging;
 
 namespace OpenGL
 {
@@ -11,6 +13,9 @@ namespace OpenGL
     {
         static void Main()
         {
+            Bitmap bMap = new Bitmap(@"Textures/bricks.jpg");
+            int texture = 0;
+
             using (var w = new GameWindow(720, 480, null, "ComGr", GameWindowFlags.Default, DisplayDevice.Default, 4, 0, OpenTK.Graphics.GraphicsContextFlags.ForwardCompatible))
             {
                 int hProgram = 0;
@@ -28,11 +33,11 @@ namespace OpenGL
                     //set up opengl
                     GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
-                    GL.ClearDepth(1);
-                    //GL.Disable(EnableCap.DepthTest);
+                    GL.ClearDepth(1f);
+                    GL.Enable(EnableCap.DepthTest);
                     GL.DepthFunc(DepthFunction.Less);
-                    GL.Enable(EnableCap.CullFace);
-                    GL.CullFace(CullFaceMode.Front);
+                    //GL.Enable(EnableCap.CullFace);
+                    //GL.CullFace(CullFaceMode.Front);
 
                     //load, compile and link shaders
                     //see https://www.khronos.org/opengl/wiki/Vertex_Shader
@@ -41,17 +46,25 @@ namespace OpenGL
 
                         in vec3 pos;
                         in vec3 colors;
+                        in vec2 textureCoordinates;
                         
                         uniform mat4 m;
                         uniform mat4 proj;
 
+                        uniform sampler2D bricks;
+
                         uniform float time;
                         out vec3 vColors;
+                        
 
                         void main()
                         {
-                            vColors = colors;
+                            
                             gl_Position =  proj * vec4(pos,1);
+                            vec4 txtr = texture(bricks, textureCoordinates);
+
+                            //vColors = colors;
+                            vColors = vec3(txtr.r, txtr.g, txtr.b);
                         }
                         ";
 
@@ -118,14 +131,14 @@ namespace OpenGL
                         0, 1, 2, // top
                         7, 5, 4,
                         7, 6, 5, // bottom
-                        0, 7, 4,
+                       /* 0, 7, 4,
                         0, 3, 7, // left
                         2, 5, 6,
                         2, 1, 5, // right
                         3, 6, 7,
                         3, 2, 6, // front
                         1, 4, 5,
-                        1, 0, 4, // back
+                        1, 0, 4, // back  */
                     };
                     
                     //triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
@@ -144,12 +157,28 @@ namespace OpenGL
                         0, 0, 1,
                         0, 0, 0,
                         0, 0, 0
-                    };
-                    
+                    };                   
 
                     var vboColor = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
                     GL.BufferData(BufferTarget.ArrayBuffer, colors.Length * sizeof(float), colors, BufferUsageHint.StaticDraw);
+
+                    var textureCoords = new float[]
+                    {
+                        0, 0,
+                        0, 1,
+                        1, 0,
+                        1, 1,
+
+                        0, 0,
+                        0, 1,
+                        1, 0,
+                        1, 1,
+                    };
+
+                    var vboTexCoords = GL.GenBuffer();
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, vboTexCoords);
+                    GL.BufferData(BufferTarget.ArrayBuffer, textureCoords.Length * sizeof(float), textureCoords, BufferUsageHint.StaticDraw);
 
                     //set up a vao
                     vaoTriangle = GL.GenVertexArray();
@@ -169,6 +198,19 @@ namespace OpenGL
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
                         GL.VertexAttribPointer(colAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
+                    
+                    GL.GenTextures(1, out texture);
+                    GL.BindTexture(TextureTarget.Texture2D, texture);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                    GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
+
+                    BitmapData data = bMap.LockBits(new Rectangle(0, 0, bMap.Width, bMap.Height),
+                ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Srgb8, bMap.Width, bMap.Height, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, data.Scan0);
+
+                    bMap.UnlockBits(data);
 
                     //check for errors during all previous calls
                     var error = GL.GetError();
@@ -195,6 +237,10 @@ namespace OpenGL
                     if (timeUniformIndex != -1)
                         GL.Uniform1(timeUniformIndex, (float)time);
 
+                    GL.ActiveTexture(TextureUnit.Texture1);
+                    GL.BindTexture(TextureTarget.Texture2D, texture);
+                    GL.Uniform1(GL.GetAttribLocation(hProgram, "bricks"), 0);
+
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
                     var zTrans = Matrix4.CreateTranslation(0f, 0f, -5f);
@@ -214,23 +260,13 @@ namespace OpenGL
                     {
                         GL.UniformMatrix4(projAttribIndex, false, ref M);
                     }
+                    
 
-                    //model-view-projection matrix (not yet used)
-                    var mvp =
-                        //model
-                        Matrix4.Identity
-
-                        //view
-                        * Matrix4.LookAt(new Vector3(0, 0, -10), new Vector3(0, 0, 0), new Vector3(0, 1, 0)) //view
-
-                        //projection
-                        * Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
-
 
                     var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
                     var rotateX = Matrix4.CreateRotationX(alpha);

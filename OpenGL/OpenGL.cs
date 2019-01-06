@@ -6,6 +6,7 @@ using System.Drawing;
 using OpenTK;                  //add "OpenTK" as NuGet reference
 using OpenTK.Graphics.OpenGL4; //add "OpenTK" as NuGet reference
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace OpenGL
 {
@@ -19,6 +20,7 @@ namespace OpenGL
             using (var w = new GameWindow(720, 480, null, "ComGr", GameWindowFlags.Default, DisplayDevice.Default, 4, 0, OpenTK.Graphics.GraphicsContextFlags.ForwardCompatible))
             {
                 int hProgram = 0;
+                int hTxtr = 0;
 
                 float alpha = 0f;
 
@@ -51,20 +53,22 @@ namespace OpenGL
                         uniform mat4 m;
                         uniform mat4 proj;
 
-                        uniform sampler2D bricks;
+                        
 
                         uniform float time;
                         out vec3 vColors;
+                        out vec2 txtCoords;
                         
 
                         void main()
                         {
                             
                             gl_Position =  proj * vec4(pos,1);
-                            vec4 txtr = texture(bricks, textureCoordinates);
+                            //vec4 txtr = texture(bricks, textureCoordinates);
 
                             //vColors = colors;
-                            vColors = vec3(txtr.r, txtr.g, txtr.b);
+                            //vColors = vec3(txtr.r, txtr.g, txtr.b);
+                            txtCoords = textureCoordinates;
                         }
                         ";
 
@@ -80,11 +84,16 @@ namespace OpenGL
                         #version 400 core
 
                         in vec3 vColors;
+                        in vec2 txtCoords;
+            
+                        uniform sampler2D bricks;
+
                         out vec4 color;
 
                         void main()
                         {
-                            color = vec4(vColors, 1.0);
+                            vec4 txtColor = texture(bricks, txtCoords);
+                            color = txtColor;
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
@@ -131,14 +140,14 @@ namespace OpenGL
                         0, 1, 2, // top
                         7, 5, 4,
                         7, 6, 5, // bottom
-                       /* 0, 7, 4,
+                        0, 7, 4,
                         0, 3, 7, // left
                         2, 5, 6,
                         2, 1, 5, // right
                         3, 6, 7,
                         3, 2, 6, // front
                         1, 4, 5,
-                        1, 0, 4, // back  */
+                        1, 0, 4, // back 
                     };
                     
                     //triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
@@ -166,14 +175,14 @@ namespace OpenGL
                     var textureCoords = new float[]
                     {
                         0, 0,
-                        0, 1,
                         1, 0,
                         1, 1,
+                        0, 1,
 
                         0, 0,
-                        0, 1,
                         1, 0,
                         1, 1,
+                        0, 1,
                     };
 
                     var vboTexCoords = GL.GenBuffer();
@@ -198,19 +207,33 @@ namespace OpenGL
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
                         GL.VertexAttribPointer(colAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
-                    
-                    GL.GenTextures(1, out texture);
-                    GL.BindTexture(TextureTarget.Texture2D, texture);
+
+                    var txtAttribIndex = GL.GetAttribLocation(hProgram, "textureCoordinates");
+                    if (txtAttribIndex != -1)
+                    {
+                        GL.EnableVertexAttribArray(txtAttribIndex);
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, vboTexCoords);
+                        GL.VertexAttribPointer(txtAttribIndex, 2, VertexAttribPointerType.Float, false, 0, 0);
+                    }
+
+                    GL.GenTextures(1, out hTxtr);
+                    GL.BindTexture(TextureTarget.Texture2D, hTxtr);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                     GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
 
+                    byte[] imgData = new byte[bMap.Width * bMap.Height * 3];
+
                     BitmapData data = bMap.LockBits(new Rectangle(0, 0, bMap.Width, bMap.Height),
                 ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
-                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Srgb8, bMap.Width, bMap.Height, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, data.Scan0);
+                    int bLen = Math.Abs(data.Stride) * data.Height;
+                    imgData = new byte[bLen];
+                    Marshal.Copy(data.Scan0, imgData, 0, bLen);
 
                     bMap.UnlockBits(data);
+
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Srgb8, bMap.Width, bMap.Height, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, imgData);
 
                     //check for errors during all previous calls
                     var error = GL.GetError();
@@ -238,7 +261,7 @@ namespace OpenGL
                         GL.Uniform1(timeUniformIndex, (float)time);
 
                     GL.ActiveTexture(TextureUnit.Texture1);
-                    GL.BindTexture(TextureTarget.Texture2D, texture);
+                    GL.BindTexture(TextureTarget.Texture2D, hTxtr);
                     GL.Uniform1(GL.GetAttribLocation(hProgram, "bricks"), 0);
 
                     var scale = Matrix4.CreateScale(0.5f);

@@ -15,7 +15,6 @@ namespace OpenGL
         static void Main()
         {
             Bitmap bMap = new Bitmap(@"Textures/bricks.jpg");
-            int texture = 0;
 
             using (var w = new GameWindow(720, 480, null, "ComGr", GameWindowFlags.Default, DisplayDevice.Default, 4, 0, OpenTK.Graphics.GraphicsContextFlags.ForwardCompatible))
             {
@@ -51,9 +50,7 @@ namespace OpenGL
                         in vec2 textureCoordinates;
                         
                         uniform mat4 m;
-                        uniform mat4 proj;
-
-                        
+                        uniform mat4 proj;                        
 
                         uniform float time;
                         out vec3 vColors;
@@ -93,7 +90,9 @@ namespace OpenGL
                         void main()
                         {
                             vec4 txtColor = texture(bricks, txtCoords);
-                            color = txtColor;
+                            //color = vec4(txtColor.b, txtColor.g, txtColor.r, txtColor.a);
+                            color = vec4(txtColor.b, txtColor.g, txtColor.r , 1.0);
+                            //color = vec4(vColors, 1.0);
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
@@ -136,18 +135,18 @@ namespace OpenGL
                     // upload model indices to a vbo
                     triangleIndices = new int[]
                     {
-                        0, 2, 3,
                         0, 1, 2, // top
-                        7, 5, 4,
+                        0, 2, 3,
                         7, 6, 5, // bottom
-                        0, 7, 4,
+                        7, 5, 4,
                         0, 3, 7, // left
-                        2, 5, 6,
+                        0, 7, 4,
                         2, 1, 5, // right
-                        3, 6, 7,
+                        2, 5, 6,
                         3, 2, 6, // front
-                        1, 4, 5,
+                        3, 6, 7,
                         1, 0, 4, // back 
+                        1, 4, 5,
                     };
                     
                     //triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
@@ -222,18 +221,21 @@ namespace OpenGL
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                     GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
 
-                    byte[] imgData = new byte[bMap.Width * bMap.Height * 3];
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
 
                     BitmapData data = bMap.LockBits(new Rectangle(0, 0, bMap.Width, bMap.Height),
-                ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
                     int bLen = Math.Abs(data.Stride) * data.Height;
-                    imgData = new byte[bLen];
+                    byte[] imgData = new byte[bLen];
                     Marshal.Copy(data.Scan0, imgData, 0, bLen);
 
                     bMap.UnlockBits(data);
 
                     GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Srgb8, bMap.Width, bMap.Height, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, imgData);
+                    //GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Srgb8Alpha8, bMap.Width, bMap.Height, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Rgba, PixelType.UnsignedByte, imgData);
+
 
                     //check for errors during all previous calls
                     var error = GL.GetError();
@@ -260,9 +262,13 @@ namespace OpenGL
                     if (timeUniformIndex != -1)
                         GL.Uniform1(timeUniformIndex, (float)time);
 
-                    GL.ActiveTexture(TextureUnit.Texture1);
+                    GL.ActiveTexture(TextureUnit.Texture0);
                     GL.BindTexture(TextureTarget.Texture2D, hTxtr);
-                    GL.Uniform1(GL.GetAttribLocation(hProgram, "bricks"), 0);
+                    var txtrUniformIndex = GL.GetUniformLocation(hProgram, "bricks");
+                    if (txtrUniformIndex != -1)
+                        GL.Uniform1(txtrUniformIndex, 0);
+                    //GL.Uniform1(GL.GetAttribLocation(hProgram, "bricks"), 0);
+
 
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);

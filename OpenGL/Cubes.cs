@@ -10,9 +10,9 @@ using System.Runtime.InteropServices;
 
 namespace OpenGL
 {
-    static class Program
+    static class Cubes
     {
-        static void Main()
+        static void Start()
         {
             Bitmap bMap = new Bitmap(@"Textures/bricks.jpg");
 
@@ -168,7 +168,7 @@ namespace OpenGL
                     var vboTriangleVertices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboTriangleVertices);
                     GL.BufferData(BufferTarget.ArrayBuffer, triangleVertices.Length * sizeof(float), triangleVertices, BufferUsageHint.StaticDraw);
-                    
+
                     // upload model indices to a vbo
                     triangleIndices = new int[]
                     {
@@ -185,12 +185,12 @@ namespace OpenGL
                         20, 21, 22, // back
                         20, 22, 23,
                     };
-                    
+
                     //triangleIndices = new int[] { 0, 1, 2, 3, 4, 5 };
                     vboTriangleIndices = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
-                    
+
                     var colors = new float[]
                     {
                         // top
@@ -228,7 +228,7 @@ namespace OpenGL
                         1, 0, 0,
                         0, 0, 1,
                         0, 1, 1,
-                    };                   
+                    };
 
                     var vboColor = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
@@ -333,7 +333,7 @@ namespace OpenGL
                     }
 
                     var colAttribIndex = GL.GetAttribLocation(hProgram, "colors");
-                    if(colAttribIndex != -1)
+                    if (colAttribIndex != -1)
                     {
                         GL.EnableVertexAttribArray(colAttribIndex);
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboColor);
@@ -349,7 +349,7 @@ namespace OpenGL
                     }
 
                     var normAttribIndex = GL.GetAttribLocation(hProgram, "normals");
-                    if(normAttribIndex != -1)
+                    if (normAttribIndex != -1)
                     {
                         GL.EnableVertexAttribArray(normAttribIndex);
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboNormals);
@@ -419,7 +419,7 @@ namespace OpenGL
                     var M = scale * rotateY * zTrans;
 
                     var mAttribIndex = GL.GetUniformLocation(hProgram, "m");
-                    if(mAttribIndex != -1)
+                    if (mAttribIndex != -1)
                     {
                         GL.UniformMatrix4(mAttribIndex, false, ref M);
                     }
@@ -437,7 +437,7 @@ namespace OpenGL
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
 
 
-                    
+
                     var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
                     var rotateX = Matrix4.CreateRotationX(alpha);
 
@@ -471,7 +471,7 @@ namespace OpenGL
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
-                    
+
 
                     //display
                     w.SwapBuffers();

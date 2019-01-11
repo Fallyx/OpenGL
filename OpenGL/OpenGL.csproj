@@ -38,7 +38,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Scenes\Cubes.cs" />
+    <Compile Include="Helpers\OpenGLArrays.cs" />
     <Compile Include="OpenGL.cs" />
+    <Compile Include="Scenes\TransparentCubes.cs" />
+    <Compile Include="Scenes\Textured.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenTK, Version=3.0.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">

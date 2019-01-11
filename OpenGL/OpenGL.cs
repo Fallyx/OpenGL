@@ -48,6 +48,7 @@ namespace OpenGL
                         in vec3 pos;
                         in vec3 colors;
                         in vec2 textureCoordinates;
+                        in vec3 normals;
                         
                         uniform mat4 m;
                         uniform mat4 proj;                        
@@ -55,7 +56,8 @@ namespace OpenGL
                         uniform float time;
                         out vec3 vColors;
                         out vec2 txtCoords;
-                        
+                        out vec3 norms;
+                        out vec3 point;
 
                         void main()
                         {
@@ -66,6 +68,10 @@ namespace OpenGL
                             //vColors = colors;
                             //vColors = vec3(txtr.r, txtr.g, txtr.b);
                             txtCoords = textureCoordinates;
+                            vec4 hNorm = vec4(normals, 0);
+                            vec4 hPos = vec4(pos,1);
+                            norms = (m * hNorm).xyz;
+                            point = (m * hPos).xyz;
                         }
                         ";
 
@@ -82,6 +88,8 @@ namespace OpenGL
 
                         in vec3 vColors;
                         in vec2 txtCoords;
+                        in vec3 norms;
+                        in vec3 point;
             
                         uniform sampler2D bricks;
 
@@ -91,8 +99,21 @@ namespace OpenGL
                         {
                             vec4 txtColor = texture(bricks, txtCoords);
                             //color = vec4(txtColor.b, txtColor.g, txtColor.r, txtColor.a);
-                            color = vec4(txtColor.b, txtColor.g, txtColor.r , 1.0);
+                            vec4 col = vec4(txtColor.b, txtColor.g, txtColor.r , 1.0);
                             //color = vec4(vColors, 1.0);
+
+                            vec3 lPos = vec3(3, 3, 0);
+                            vec3 eye = vec3(0, 0, 0);
+                            vec3 lookAt = normalize(point - eye);
+                            vec3 PL = normalize(lPos - point);
+
+                            float diff = dot(PL, norms);
+                            float diffuse = max(0, diff);
+
+                            vec3 specDirection = normalize(norms * (2 * dot(norms, PL)) - PL);
+                            vec3 spec = vec3(0.8) * pow(max(0.0, -dot(specDirection, lookAt)), 50);
+                            //color = diffuse * col + vec4(spec, 1);
+                            color = col;
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
@@ -125,7 +146,7 @@ namespace OpenGL
                         -1, -1, +1,
                         +1, -1, +1,
                         +1, +1, +1,
-                        -1, +1, +1
+                        -1, +1, +1,
                     };
 
                     var vboTriangleVertices = GL.GenBuffer();
@@ -182,15 +203,75 @@ namespace OpenGL
                         1, 0,
                         1, 1,
                         0, 1,
+
+                        
+                        0, 0,
+                        0, 0,
+                        0, 0,
+                        0, 0,
+
+                        0, 0,
+                        0, 0,
+                        0, 0,
+                        0, 0,
+
+
+                        0, 0,
+                        0, 0,
+                        0, 0,
+                        0, 0,
+
+                        0, 0,
+                        0, 0,
+                        0, 0,
+                        0, 0,
                     };
 
                     var vboTexCoords = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboTexCoords);
                     GL.BufferData(BufferTarget.ArrayBuffer, textureCoords.Length * sizeof(float), textureCoords, BufferUsageHint.StaticDraw);
 
+                    var normals = new float[]
+                    {
+                        +0, +0, -1,
+                        +0, +0, -1,
+                        +0, +0, -1,
+                        +0, +0, -1,
+
+                        +0, +0, +1,
+                        +0, +0, +1,
+                        +0, +0, +1,
+                        +0, +0, +1,
+
+                        -1, +0, +0,
+                        -1, +0, +0,
+                        -1, +0, +0,
+                        -1, +0, +0,
+
+                        +1, +0, +0,
+                        +1, +0, +0,
+                        +1, +0, +0,
+                        +1, +0, +0,
+
+                        +0, +1, +0,
+                        +0, +1, +0,
+                        +0, +1, +0,
+                        +0, +1, +0,
+
+                        +0, -1, +0,
+                        +0, -1, +0,
+                        +0, -1, +0,
+                        +0, -1, +0,
+                    };
+
+                    var vboNormals = GL.GenBuffer();
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, vboNormals);
+                    GL.BufferData(BufferTarget.ArrayBuffer, normals.Length * sizeof(float), normals, BufferUsageHint.StaticDraw);
+
                     //set up a vao
                     vaoTriangle = GL.GenVertexArray();
                     GL.BindVertexArray(vaoTriangle);
+
                     var posAttribIndex = GL.GetAttribLocation(hProgram, "pos");
                     if (posAttribIndex != -1)
                     {
@@ -213,6 +294,14 @@ namespace OpenGL
                         GL.EnableVertexAttribArray(txtAttribIndex);
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboTexCoords);
                         GL.VertexAttribPointer(txtAttribIndex, 2, VertexAttribPointerType.Float, false, 0, 0);
+                    }
+
+                    var normAttribIndex = GL.GetAttribLocation(hProgram, "normals");
+                    if(normAttribIndex != -1)
+                    {
+                        GL.EnableVertexAttribArray(normAttribIndex);
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, vboNormals);
+                        GL.VertexAttribPointer(normAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
 
                     GL.GenTextures(1, out hTxtr);
@@ -289,13 +378,13 @@ namespace OpenGL
                     {
                         GL.UniformMatrix4(projAttribIndex, false, ref M);
                     }
-                    
-
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+
+
 
                     var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
                     var rotateX = Matrix4.CreateRotationX(alpha);
@@ -312,6 +401,8 @@ namespace OpenGL
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+
+
 
                     translate = Matrix4.CreateTranslation(3f, 0, 0f);
                     rotateX = Matrix4.CreateRotationX(-alpha);

@@ -35,8 +35,6 @@ namespace OpenGL.Scenes
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
                     GL.DepthFunc(DepthFunction.Less);
-                    //GL.Enable(EnableCap.CullFace);
-                    //GL.CullFace(CullFaceMode.Front);
 
                     //load, compile and link shaders
                     //see https://www.khronos.org/opengl/wiki/Vertex_Shader
@@ -92,17 +90,20 @@ namespace OpenGL.Scenes
                             vec4 txtColor = texture(bricks, txtCoords);
                             vec4 col = vec4(txtColor.b, txtColor.g, txtColor.r, txtColor.a);
 
-                            vec3 lPos = vec3(0, 3, 5);
+                            vec3 lPos = vec3(0, 0, -5);
+                            vec4 lCol = vec4(1);
                             vec3 eye = vec3(0, 0, 0);
                             vec3 lookAt = normalize(point - eye);
                             vec3 PL = normalize(lPos - point);
 
-                            float diff = dot(PL, norms);
+                            float diff = -dot(PL, norms);
                             float diffuse = max(0, diff);
 
-                            vec3 specDirection = normalize(norms * (2 * dot(norms, PL)) - PL);
-                            vec3 spec = vec3(0.8) * pow(max(0.0, -dot(specDirection, lookAt)), 50);
-                            color = vec4(0.1) * col + diffuse * col + vec4(spec, 1);
+                            vec3 s = PL - dot(PL, norms) * norms;
+                            vec3 r = normalize(PL - 2 * s);
+                            vec3 EL = normalize(point - eye);
+                            vec3 spec = lCol.rgb * pow(max(0.0, -dot(normalize(r), EL)), 50);
+                            color = vec4(col.r * lCol.r * diffuse, col.g * lCol.g * diffuse, col.b * lCol.b * diffuse, 1) + vec4(spec, 1);
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);

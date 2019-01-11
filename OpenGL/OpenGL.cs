@@ -38,6 +38,10 @@ namespace OpenGL
                 {
                     Textured.Start();
                 }
+                else if (input == "3")
+                {
+                    TransparentCubes.Start();
+                }
             }
         }
     }

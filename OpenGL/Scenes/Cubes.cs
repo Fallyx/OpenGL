@@ -28,8 +28,6 @@ namespace OpenGL.Scenes
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
                     GL.DepthFunc(DepthFunction.Less);
-                    //GL.Enable(EnableCap.CullFace);
-                    //GL.CullFace(CullFaceMode.Front);
 
                     //load, compile and link shaders
                     //see https://www.khronos.org/opengl/wiki/Vertex_Shader

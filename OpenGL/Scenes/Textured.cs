@@ -25,8 +25,6 @@ namespace OpenGL.Scenes
                 int[] triangleIndices = null;
                 int vboTriangleIndices = 0;
 
-                double time = 0;
-
                 w.Load += (o, ea) =>
                 {
                     //set up opengl
@@ -47,7 +45,6 @@ namespace OpenGL.Scenes
                         
                         uniform mat4 m;
                         uniform mat4 proj;                        
-                        uniform float time;
 
                         out vec2 txtCoords;
                         out vec3 norms;
@@ -90,20 +87,32 @@ namespace OpenGL.Scenes
                             vec4 txtColor = texture(bricks, txtCoords);
                             vec4 col = vec4(txtColor.b, txtColor.g, txtColor.r, txtColor.a);
 
-                            vec3 lPos = vec3(0, 0, -5);
-                            vec4 lCol = vec4(1);
-                            vec3 eye = vec3(0, 0, 0);
-                            vec3 lookAt = normalize(point - eye);
+                            vec3 lPos = vec3(0, 0, 5);
+                            vec4 lCol = vec4(0.8, 0.8, 0.8, 1);
+                            vec3 eye = vec3(0, 0, -4);
                             vec3 PL = normalize(lPos - point);
 
-                            float diff = -dot(PL, norms);
-                            float diffuse = max(0, diff);
+                            vec3 diff = vec3(0);
+                            float nL = dot(norms, PL);
+                            if(nL >= 0) { diff = lCol.xyz * col.xyz * nL; } 
 
-                            vec3 s = PL - dot(PL, norms) * norms;
-                            vec3 r = normalize(PL - 2 * s);
-                            vec3 EL = normalize(point - eye);
-                            vec3 spec = lCol.rgb * pow(max(0.0, -dot(normalize(r), EL)), 50);
-                            color = vec4(col.r * lCol.r * diffuse, col.g * lCol.g * diffuse, col.b * lCol.b * diffuse, 1) + vec4(spec, 1);
+                            vec3 spec = vec3(0);
+                            if(nL >= 0) {
+                                vec3 s = PL - dot(PL, norms) * norms;
+                                vec3 r = normalize(PL - 2 * s);
+                                vec3 EL = normalize(point - eye);
+
+                                if(-dot(r, EL) < 0)
+                                {
+                                    float rEL = -dot(r, EL);
+                                    rEL = pow(rEL, 50);
+                                    //spec = lCol.xyz * rEL;
+                                    spec = vec3(1);
+                                }
+                                spec = min(vec3(0), pow(dot(r, EL),50));
+                            }
+
+                            color = vec4(diff, 1) + vec4(spec, 1);
                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
@@ -208,7 +217,6 @@ namespace OpenGL.Scenes
                 {
                     //perform logic
 
-                    time += fea.Time;
                     alpha += 0.01f;
                 };
 
@@ -219,9 +227,6 @@ namespace OpenGL.Scenes
 
                     //switch to our shader
                     GL.UseProgram(hProgram);
-                    var timeUniformIndex = GL.GetUniformLocation(hProgram, "time");
-                    if (timeUniformIndex != -1)
-                        GL.Uniform1(timeUniformIndex, (float)time);
 
                     GL.ActiveTexture(TextureUnit.Texture0);
                     GL.BindTexture(TextureTarget.Texture2D, hTxtr);

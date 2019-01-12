@@ -19,11 +19,10 @@ namespace OpenGL.Scenes
                 int[] triangleIndices = null;
                 int vboTriangleIndices = 0;
 
-                double time = 0;
-
                 w.Load += (o, ea) =>
                 {
                     //set up opengl
+                    GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
@@ -37,15 +36,12 @@ namespace OpenGL.Scenes
                         in vec3 pos;
                         in vec3 colors;
                         
-                        uniform mat4 m;
                         uniform mat4 proj;                        
-                        uniform float time;
 
                         out vec3 vColors;
 
                         void main()
                         {
-                            
                             gl_Position =  proj * vec4(pos,1);
 
                             vColors = colors;
@@ -140,8 +136,7 @@ namespace OpenGL.Scenes
                 w.UpdateFrame += (o, fea) =>
                 {
                     //perform logic
-
-                    time += fea.Time;
+                    
                     alpha += 0.01f;
                 };
 
@@ -152,24 +147,14 @@ namespace OpenGL.Scenes
 
                     //switch to our shader
                     GL.UseProgram(hProgram);
-                    var timeUniformIndex = GL.GetUniformLocation(hProgram, "time");
-                    if (timeUniformIndex != -1)
-                        GL.Uniform1(timeUniformIndex, (float)time);
 
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
                     var zTrans = Matrix4.CreateTranslation(0f, 0f, -5f);
                     var perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-                    var M = scale * rotateY * zTrans;
+                    var M = scale * rotateY * zTrans * perspective;
 
-                    var mAttribIndex = GL.GetUniformLocation(hProgram, "m");
-                    if (mAttribIndex != -1)
-                    {
-                        GL.UniformMatrix4(mAttribIndex, false, ref M);
-                    }
-
-                    M *= perspective;
                     var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
                     {

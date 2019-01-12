@@ -22,6 +22,7 @@ namespace OpenGL.Helpers
                 +1, -1, +1,
                 +1, +1, +1,
                 -1, +1, +1,
+                
                 //left
                 -1, -1, -1,
                 -1, +1, -1,
@@ -51,12 +52,12 @@ namespace OpenGL.Helpers
         {
             var triangleIndices = new int[]
             {
-                    0,  1,  2, // top
-                    0,  2,  3,
-                    7,  6,  5, // bottom
-                    7,  5,  4,
-                    8,  9, 10, // left
-                    8, 10, 11,
+                 0,  1,  2, // top
+                 0,  2,  3,
+                 7,  6,  5, // bottom
+                 7,  5,  4,
+                 8,  9, 10, // left
+                 8, 10, 11,
                 12, 13, 14, // right
                 12, 14, 15,
                 16, 17, 18, // front

@@ -2,8 +2,6 @@
 using System.Drawing;
 using OpenTK;                  //add "OpenTK" as NuGet reference
 using OpenTK.Graphics.OpenGL4; //add "OpenTK" as NuGet reference
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 using OpenGL.Helpers;
 
 namespace OpenGL.Scenes
@@ -173,7 +171,7 @@ namespace OpenGL.Scenes
                     //perform logic
 
                     time += fea.Time;
-                    alpha += 0.01f;
+                    alpha += 0.005f;
                 };
 
                 w.RenderFrame += (o, fea) =>

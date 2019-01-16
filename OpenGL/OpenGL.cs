@@ -1,12 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Drawing;
-using OpenTK;                  //add "OpenTK" as NuGet reference
-using OpenTK.Graphics.OpenGL4; //add "OpenTK" as NuGet reference
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 using OpenGL.Scenes;
 
 namespace OpenGL

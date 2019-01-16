@@ -29,7 +29,7 @@ namespace OpenGL.Scenes
                 w.Load += (o, ea) =>
                 {
                     //set up opengl
-                    GL.Enable(EnableCap.FramebufferSrgb);
+                    //GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
@@ -43,14 +43,22 @@ namespace OpenGL.Scenes
                         #version 400 core
 
                         in vec3 pos;
+                        in vec3 normals;
                         
                         uniform mat4 m;
-                        uniform mat4 proj;                        
+                        uniform mat4 proj;
+
+                        out vec3 norms;
+                        out vec3 point;
 
                         void main()
                         {
                             
                             gl_Position =  proj * vec4(pos,1);
+                            vec4 hNorm = vec4(normals, 0);
+                            vec4 hPos = vec4(pos,1);
+                            norms = (m * hNorm).xyz;
+                            point = (m * hPos).xyz;
                         }
                         ";
 
@@ -65,15 +73,37 @@ namespace OpenGL.Scenes
                     var FragmentShaderSource = @"
                         #version 400 core
             
+                        in vec3 norms;
+                        in vec3 point;
+    
                         uniform vec4 oClr;
 
                         out vec4 color;
 
                         void main()
                         {
-                            //color = vec4(1, 0, 0, 0.5);
+                            vec4 clr = vec4(1, 0, 0, 0.5);
                             color = oClr;
-                        }
+
+                            vec3 lPos = vec3(0, 0, 5);
+                            vec4 lCol = vec4(0.8, 0.8, 0.8, 1);
+                            vec3 eye = vec3(0, 0, 0);
+                            vec3 PL = normalize(lPos - point);
+
+
+                            vec3 diff = vec3(0);
+                            float nL = dot(norms, PL);
+                            if(nL >= 0) { diff = lCol.xyz * oClr.xyz * nL; } 
+
+
+                            vec3 viewDir = normalize(eye - point);
+                            vec3 reflectDir = reflect(-PL, norms);
+
+                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
+                            vec3 spec = 0.5 * fSpec * lCol.rgb;
+
+                            color = vec4(diff + spec, oClr.a);
+                         }
                         ";
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
                     GL.ShaderSource(hFragmentShader, FragmentShaderSource);
@@ -106,6 +136,12 @@ namespace OpenGL.Scenes
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
 
+                    var normals = OpenGLArrays.Normals();
+
+                    var vboNormals = GL.GenBuffer();
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, vboNormals);
+                    GL.BufferData(BufferTarget.ArrayBuffer, normals.Length * sizeof(float), normals, BufferUsageHint.StaticDraw);
+
                     //set up a vao
                     vaoTriangle = GL.GenVertexArray();
                     GL.BindVertexArray(vaoTriangle);
@@ -116,6 +152,14 @@ namespace OpenGL.Scenes
                         GL.EnableVertexAttribArray(posAttribIndex);
                         GL.BindBuffer(BufferTarget.ArrayBuffer, vboTriangleVertices);
                         GL.VertexAttribPointer(posAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
+                    }
+
+                    var normAttribIndex = GL.GetAttribLocation(hProgram, "normals");
+                    if (normAttribIndex != -1)
+                    {
+                        GL.EnableVertexAttribArray(normAttribIndex);
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, vboNormals);
+                        GL.VertexAttribPointer(normAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
 
                     //check for errors during all previous calls
@@ -143,15 +187,31 @@ namespace OpenGL.Scenes
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
                     var rotateX = Matrix4.CreateRotationX(alpha);
-                    var zTrans = Matrix4.CreateTranslation(0.5f, 0f, -5f);
-                    var perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-                    var M = scale * rotateX * rotateY * zTrans * perspective;
+                    var modelView =
+                        //model
+                        Matrix4.Identity
 
+                        //view
+                        * Matrix4.LookAt(new Vector3(0, 0, -10), new Vector3(0, 0, 0), new Vector3(0, 1, 0)); //view
+                    var projection =
+                        //projection
+                        Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
+
+                    var translate = Matrix4.CreateTranslation(-1.3f, 0, 0);
+                    var M = rotateX * rotateY * translate * modelView;
+
+                    var mAttribIndex = GL.GetUniformLocation(hProgram, "m");
+                    if (mAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(mAttribIndex, false, ref M);
+                    }
+
+                    var MVP = M * projection;
                     var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
                     {
-                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                        GL.UniformMatrix4(projAttribIndex, false, ref MVP);
                     }
 
                     var clrSolid = new Vector4(1, 0, 0, 1);
@@ -171,15 +231,20 @@ namespace OpenGL.Scenes
 
 
                     var rotateZ = Matrix4.CreateRotationZ(alpha);
-                    zTrans = Matrix4.CreateTranslation(-0.5f, 0f, -5f);
-                    perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-                    M = scale * rotateZ * rotateY * zTrans * perspective;
+                    M =  rotateZ * rotateY * modelView;
 
+                    mAttribIndex = GL.GetUniformLocation(hProgram, "m");
+                    if (mAttribIndex != -1)
+                    {
+                        GL.UniformMatrix4(mAttribIndex, false, ref M);
+                    }
+
+                    MVP = M * projection;
                     projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
                     {
-                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                        GL.UniformMatrix4(projAttribIndex, false, ref MVP);
                     }
 
                     var clrOpaque = new Vector4(0, 1, 0, 0.5f);

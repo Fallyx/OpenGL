@@ -22,7 +22,7 @@ namespace OpenGL.Scenes
                 w.Load += (o, ea) =>
                 {
                     //set up opengl
-                    GL.Enable(EnableCap.FramebufferSrgb);
+                    //GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
@@ -148,12 +148,19 @@ namespace OpenGL.Scenes
                     //switch to our shader
                     GL.UseProgram(hProgram);
 
-                    var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
-                    var zTrans = Matrix4.CreateTranslation(0f, 0f, -5f);
-                    var perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-                    var M = scale * rotateY * zTrans * perspective;
+                    var modelView =
+                        //model
+                        Matrix4.Identity
+
+                        //view
+                        * Matrix4.LookAt(new Vector3(0, 0, -10), new Vector3(0, 0, 0), new Vector3(0, 1, 0)); //view
+
+                    var projection = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
+
+
+                    var M = rotateY * modelView * projection;
 
                     var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
@@ -171,7 +178,7 @@ namespace OpenGL.Scenes
                     var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
                     var rotateX = Matrix4.CreateRotationX(alpha);
 
-                    M = translate * scale * rotateX * zTrans * perspective;
+                    M = translate * rotateX * modelView * projection;
 
                     projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
@@ -189,7 +196,7 @@ namespace OpenGL.Scenes
                     translate = Matrix4.CreateTranslation(3f, 0, 0f);
                     rotateX = Matrix4.CreateRotationX(-alpha);
 
-                    M = translate * scale * rotateX * zTrans * perspective;
+                    M = translate * rotateX * modelView * projection;
 
                     projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)

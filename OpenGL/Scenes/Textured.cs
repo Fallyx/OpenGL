@@ -85,32 +85,24 @@ namespace OpenGL.Scenes
                         void main()
                         {
                             vec4 txtColor = texture(bricks, txtCoords);
-                            vec4 col = vec4(txtColor.b, txtColor.g, txtColor.r, txtColor.a);
+                            vec4 col = vec4(txtColor.b, txtColor.g, txtColor.r, 1);
 
                             vec3 lPos = vec3(0, 0, 5);
-                            vec4 lCol = vec4(0.8, 0.8, 0.8, 1);
-                            vec3 eye = vec3(0, 0, -4);
+                            vec4 lCol = vec4(1);
+                            vec3 eye = vec3(0, 0, 0);
                             vec3 PL = normalize(lPos - point);
+
 
                             vec3 diff = vec3(0);
                             float nL = dot(norms, PL);
                             if(nL >= 0) { diff = lCol.xyz * col.xyz * nL; } 
 
-                            vec3 spec = vec3(0);
-                            if(nL >= 0) {
-                                vec3 s = PL - dot(PL, norms) * norms;
-                                vec3 r = normalize(PL - 2 * s);
-                                vec3 EL = normalize(point - eye);
 
-                                if(-dot(r, EL) < 0)
-                                {
-                                    float rEL = -dot(r, EL);
-                                    rEL = pow(rEL, 50);
-                                    //spec = lCol.xyz * rEL;
-                                    spec = vec3(1);
-                                }
-                                spec = min(vec3(0), pow(dot(r, EL),50));
-                            }
+                            vec3 viewDir = normalize(eye - point);
+                            vec3 reflectDir = reflect(-PL, norms);
+
+                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
+                            vec3 spec = 0.5 * fSpec * lCol.rgb;
 
                             color = vec4(diff, 1) + vec4(spec, 1);
                         }
@@ -217,7 +209,7 @@ namespace OpenGL.Scenes
                 {
                     //perform logic
 
-                    alpha += 0.01f;
+                    alpha += 0.005f;
                 };
 
                 w.RenderFrame += (o, fea) =>
@@ -234,14 +226,21 @@ namespace OpenGL.Scenes
                     if (txtrUniformIndex != -1)
                         GL.Uniform1(txtrUniformIndex, 0);
 
-
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
                     var rotateX = Matrix4.CreateRotationX(alpha);
-                    var zTrans = Matrix4.CreateTranslation(0f, 0f, -5f);
-                    var perspective = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-                    var M = scale * rotateX * rotateY * zTrans;
+                    var modelView =
+                        //model
+                        Matrix4.Identity
+
+                        //view
+                        * Matrix4.LookAt(new Vector3(0, 0, -10), new Vector3(0, 0, 0), new Vector3(0, 1, 0)); //view
+                    var projection =
+                        //projection
+                        Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
+
+                    var M = rotateX * rotateY * modelView;
 
                     var mAttribIndex = GL.GetUniformLocation(hProgram, "m");
                     if (mAttribIndex != -1)
@@ -249,11 +248,11 @@ namespace OpenGL.Scenes
                         GL.UniformMatrix4(mAttribIndex, false, ref M);
                     }
 
-                    M *= perspective;
+                    var MVP = M * projection;
                     var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
                     if (projAttribIndex != -1)
                     {
-                        GL.UniformMatrix4(projAttribIndex, false, ref M);
+                        GL.UniformMatrix4(projAttribIndex, false, ref MVP);
                     }
 
                     //render our model

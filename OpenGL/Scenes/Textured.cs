@@ -52,7 +52,6 @@ namespace OpenGL.Scenes
 
                         void main()
                         {
-                            
                             gl_Position =  proj * vec4(pos,1);
 
                             txtCoords = textureCoordinates;
@@ -97,11 +96,9 @@ namespace OpenGL.Scenes
                             float nL = dot(norms, PL);
                             if(nL >= 0) { diff = lCol.xyz * col.xyz * nL; } 
 
-
                             vec3 viewDir = normalize(eye - point);
-                            vec3 reflectDir = reflect(-PL, norms);
-
-                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
+                            vec3 reflectDir = reflect(-PL, norms
+                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 128);
                             vec3 spec = 0.5 * fSpec * lCol.rgb;
 
                             color = vec4(diff, 1) + vec4(spec, 1);
@@ -138,12 +135,14 @@ namespace OpenGL.Scenes
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
 
+                    // upload texture coords to a vbo
                     var textureCoords = OpenGLArrays.TextureCoords();
 
                     var vboTexCoords = GL.GenBuffer();
                     GL.BindBuffer(BufferTarget.ArrayBuffer, vboTexCoords);
                     GL.BufferData(BufferTarget.ArrayBuffer, textureCoords.Length * sizeof(float), textureCoords, BufferUsageHint.StaticDraw);
 
+                    // upload normals to a vbo
                     var normals = OpenGLArrays.Normals();
 
                     var vboNormals = GL.GenBuffer();
@@ -178,6 +177,7 @@ namespace OpenGL.Scenes
                         GL.VertexAttribPointer(normAttribIndex, 3, VertexAttribPointerType.Float, false, 0, 0);
                     }
 
+                    // Setup Texture
                     GL.GenTextures(1, out hTxtr);
                     GL.BindTexture(TextureTarget.Texture2D, hTxtr);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
@@ -187,6 +187,7 @@ namespace OpenGL.Scenes
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
 
+                    // Copy bitmapdata into a byte array
                     BitmapData data = bMap.LockBits(new Rectangle(0, 0, bMap.Width, bMap.Height),
                 ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 

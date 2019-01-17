@@ -70,6 +70,7 @@ namespace OpenGL.Scenes
                             color = col;
                         }
                         ";
+
                     var hFragmentShader = GL.CreateShader(ShaderType.FragmentShader);
                     GL.ShaderSource(hFragmentShader, FragmentShaderSource);
                     GL.CompileShader(hFragmentShader);
@@ -101,6 +102,7 @@ namespace OpenGL.Scenes
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
 
+                    // upload color to a vbo
                     var colors = OpenGLArrays.Colors();
 
                     var vboColor = GL.GenBuffer();
@@ -159,7 +161,7 @@ namespace OpenGL.Scenes
 
                     var projection = Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
-
+                    // Middle Cube
                     var M = rotateY * modelView * projection;
 
                     var projAttribIndex = GL.GetUniformLocation(hProgram, "proj");
@@ -174,7 +176,7 @@ namespace OpenGL.Scenes
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
 
 
-
+                    // Left Cube 
                     var translate = Matrix4.CreateTranslation(-3f, 0, 0f);
                     var rotateX = Matrix4.CreateRotationX(alpha);
 
@@ -192,7 +194,7 @@ namespace OpenGL.Scenes
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
 
 
-
+                    // Right Cube
                     translate = Matrix4.CreateTranslation(3f, 0, 0f);
                     rotateX = Matrix4.CreateRotationX(-alpha);
 

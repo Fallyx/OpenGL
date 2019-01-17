@@ -51,8 +51,8 @@ namespace OpenGL.Scenes
 
                         void main()
                         {
-                            
                             gl_Position =  proj * vec4(pos,1);
+
                             vec4 hNorm = vec4(normals, 0);
                             vec4 hPos = vec4(pos,1);
                             norms = (m * hNorm).xyz;
@@ -93,11 +93,9 @@ namespace OpenGL.Scenes
                             float nL = dot(norms, PL);
                             if(nL >= 0) { diff = lCol.xyz * oClr.xyz * nL; } 
 
-
                             vec3 viewDir = normalize(eye - point);
-                            vec3 reflectDir = reflect(-PL, norms);
-
-                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
+                            vec3 reflectDir = reflect(-PL, norms
+                            float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 128);
                             vec3 spec = 0.5 * fSpec * lCol.rgb;
 
                             color = vec4(diff + spec, oClr.a);
@@ -134,6 +132,7 @@ namespace OpenGL.Scenes
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.BufferData(BufferTarget.ElementArrayBuffer, triangleIndices.Length * sizeof(int), triangleIndices, BufferUsageHint.StaticDraw);
 
+                    // upload normals to a vbo
                     var normals = OpenGLArrays.Normals();
 
                     var vboNormals = GL.GenBuffer();
@@ -196,6 +195,7 @@ namespace OpenGL.Scenes
                         //projection
                         Matrix4.CreatePerspectiveFieldOfView(45 * (float)(Math.PI / 180d), w.ClientRectangle.Width / (float)w.ClientRectangle.Height, 0.1f, 100f);
 
+                    // Solid Cube
                     var translate = Matrix4.CreateTranslation(-1.3f, 0, 0);
                     var M = rotateX * rotateY * translate * modelView;
 
@@ -227,7 +227,7 @@ namespace OpenGL.Scenes
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
 
 
-
+                    // Transparent Cube
                     var rotateZ = Matrix4.CreateRotationZ(alpha);
 
                     M =  rotateZ * rotateY * modelView;
@@ -245,12 +245,12 @@ namespace OpenGL.Scenes
                         GL.UniformMatrix4(projAttribIndex, false, ref MVP);
                     }
 
-                    var clrOpaque = new Vector4(0, 1, 0, 0.5f);
+                    var clrTransparent = new Vector4(0, 1, 0, 0.5f);
 
                     clrAttribIndex = GL.GetUniformLocation(hProgram, "oClr");
                     if (clrAttribIndex != -1)
                     {
-                        GL.Uniform4(clrAttribIndex, ref clrOpaque);
+                        GL.Uniform4(clrAttribIndex, ref clrTransparent);
                     }
 
                     //render our model

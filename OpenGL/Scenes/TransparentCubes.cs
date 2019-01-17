@@ -94,7 +94,7 @@ namespace OpenGL.Scenes
                             if(nL >= 0) { diff = lCol.xyz * oClr.xyz * nL; } 
 
                             vec3 viewDir = normalize(eye - point);
-                            vec3 reflectDir = reflect(-PL, norms
+                            vec3 reflectDir = reflect(-PL, norms);
                             float fSpec = pow(max(dot(viewDir, reflectDir), 0.0), 128);
                             vec3 spec = 0.5 * fSpec * lCol.rgb;
 

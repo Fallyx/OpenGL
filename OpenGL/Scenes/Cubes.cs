@@ -138,8 +138,8 @@ namespace OpenGL.Scenes
                 w.UpdateFrame += (o, fea) =>
                 {
                     //perform logic
-                    
-                    alpha += 0.01f;
+
+                    alpha += 0.5f * (float)fea.Time;
                 };
 
                 w.RenderFrame += (o, fea) =>

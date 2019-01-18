@@ -22,12 +22,9 @@ namespace OpenGL.Scenes
                 int[] triangleIndices = null;
                 int vboTriangleIndices = 0;
 
-                double time = 0;
-
                 w.Load += (o, ea) =>
                 {
                     //set up opengl
-                    //GL.Enable(EnableCap.FramebufferSrgb);
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
                     GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
@@ -80,18 +77,18 @@ namespace OpenGL.Scenes
 
                         void main()
                         {
-                            vec4 clr = vec4(1, 0, 0, 0.5);
-                            color = oClr;
+                            //vec4 clr = vec4(1, 0, 0, 0.5);   
+                            vec4 tmpClr = oClr;
 
                             vec3 lPos = vec3(0, 0, 5);
                             vec4 lCol = vec4(0.8, 0.8, 0.8, 1);
                             vec3 eye = vec3(0, 0, 0);
                             vec3 PL = normalize(lPos - point);
-
+                            
 
                             vec3 diff = vec3(0);
                             float nL = dot(norms, PL);
-                            if(nL >= 0) { diff = lCol.xyz * oClr.xyz * nL; } 
+                            if(nL >= 0) { diff = lCol.xyz * tmpClr.xyz * nL; } 
 
                             vec3 viewDir = normalize(eye - point);
                             vec3 reflectDir = reflect(-PL, norms);
@@ -169,8 +166,7 @@ namespace OpenGL.Scenes
                 {
                     //perform logic
 
-                    time += fea.Time;
-                    alpha += 0.005f;
+                    alpha += 0.2f * (float)fea.Time;
                 };
 
                 w.RenderFrame += (o, fea) =>
@@ -220,17 +216,21 @@ namespace OpenGL.Scenes
                         GL.Uniform4(clrAttribIndex, ref clrSolid);
                     }
 
+                    GL.Disable(EnableCap.CullFace);
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+                    
+
+
 
 
                     // Transparent Cube
                     var rotateZ = Matrix4.CreateRotationZ(alpha);
 
-                    M =  rotateZ * rotateY * modelView;
+                    M = rotateY * rotateZ * modelView;
 
                     mAttribIndex = GL.GetUniformLocation(hProgram, "m");
                     if (mAttribIndex != -1)
@@ -252,6 +252,8 @@ namespace OpenGL.Scenes
                     {
                         GL.Uniform4(clrAttribIndex, ref clrTransparent);
                     }
+
+                    GL.Enable(EnableCap.CullFace);
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);

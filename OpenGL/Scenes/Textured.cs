@@ -181,7 +181,7 @@ namespace OpenGL.Scenes
                     GL.GenTextures(1, out hTxtr);
                     GL.BindTexture(TextureTarget.Texture2D, hTxtr);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
                     GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
 
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
@@ -210,7 +210,7 @@ namespace OpenGL.Scenes
                 {
                     //perform logic
 
-                    alpha += 0.005f;
+                    alpha += 0.5f * (float)fea.Time;
                 };
 
                 w.RenderFrame += (o, fea) =>

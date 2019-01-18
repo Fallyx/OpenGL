@@ -166,7 +166,7 @@ namespace OpenGL.Scenes
                 {
                     //perform logic
 
-                    alpha += 0.2f * (float)fea.Time;
+                    alpha += 0.5f * (float)fea.Time;
                 };
 
                 w.RenderFrame += (o, fea) =>

@@ -26,11 +26,15 @@ namespace OpenGL.Scenes
                 {
                     //set up opengl
                     GL.ClearColor(0.5f, 0.5f, 0.5f, 0);
-                    GL.ClearDepth(1f);
+                    //GL.ClearDepth(1f);
                     GL.Enable(EnableCap.DepthTest);
-                    GL.DepthFunc(DepthFunction.Less);
+                    GL.DepthMask(true);
+                    GL.DepthRange(0, 50);
+                    //GL.DepthFunc(DepthFunction.Less);
                     GL.Enable(EnableCap.Blend);
                     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+                    GL.Disable(EnableCap.CullFace);
+                    
 
                     //load, compile and link shaders
                     //see https://www.khronos.org/opengl/wiki/Vertex_Shader
@@ -88,6 +92,11 @@ namespace OpenGL.Scenes
 
                             vec3 diff = vec3(0);
                             float nL = dot(norms, PL);
+                            if (tmpClr.a < 1)
+                            {
+                                nL = max(nL, 1 - nL);
+                            }
+                            
                             if(nL >= 0) { diff = lCol.xyz * tmpClr.xyz * nL; } 
 
                             vec3 viewDir = normalize(eye - point);
@@ -177,6 +186,9 @@ namespace OpenGL.Scenes
                     //switch to our shader
                     GL.UseProgram(hProgram);
 
+                    GL.DepthMask(true);
+                    GL.Disable(EnableCap.Blend);
+
                     var scale = Matrix4.CreateScale(0.5f);
                     var rotateY = Matrix4.CreateRotationY(alpha);
                     var rotateX = Matrix4.CreateRotationX(alpha);
@@ -216,16 +228,16 @@ namespace OpenGL.Scenes
                         GL.Uniform4(clrAttribIndex, ref clrSolid);
                     }
 
-                    GL.Disable(EnableCap.CullFace);
-
                     //render our model
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
                     
+                
 
 
-
+                    GL.Enable(EnableCap.Blend);
+                    GL.DepthMask(false);
 
                     // Transparent Cube
                     var rotateZ = Matrix4.CreateRotationZ(alpha);
@@ -253,12 +265,14 @@ namespace OpenGL.Scenes
                         GL.Uniform4(clrAttribIndex, ref clrTransparent);
                     }
 
-                    GL.Enable(EnableCap.CullFace);
 
                     //render our model
                     GL.BindVertexArray(vaoTriangle);
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, vboTriangleIndices);
                     GL.DrawElements(PrimitiveType.Triangles, triangleIndices.Length, DrawElementsType.UnsignedInt, 0);
+
+
+                    GL.DepthMask(true);
 
                     //display
                     w.SwapBuffers();

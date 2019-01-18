@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OpenGL.Helpers
+﻿namespace OpenGL.Helpers
 {
     static class OpenGLArrays
     {
@@ -43,11 +37,10 @@ namespace OpenGL.Helpers
                 -1, +1, +1,
                 
                 //back
-                +1, -1, -1,
                 -1, -1, -1,
-                -1, +1, -1,
+                +1, -1, -1,
                 +1, +1, -1,
-                
+                -1, +1, -1,
             };
 
             return triangleVertices;
@@ -58,23 +51,23 @@ namespace OpenGL.Helpers
             var triangleIndices = new int[]
             {
                 
-                 0,  1,  2, // top
-                 0,  2,  3,
+                 0,  2,  3, // top
+                 0,  1,  2, 
                  
-                 7,  6,  5, // bottom
-                 7,  5,  4,
-                 
+                 7,  5,  6, // bottom
+                 7,  4,  5,
+                      
                  8,  9, 10, // left
                  8, 10, 11,
                  
                 12, 13, 14, // right
                 12, 14, 15,
                 
-                20, 21, 22, // back
-                20, 22, 23,
-                
                 16, 17, 18, // front
                 16, 18, 19,
+
+                20, 21, 22, // back
+                20, 22, 23,
                 
             };
 

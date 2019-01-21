@@ -43,6 +43,7 @@
     <Compile Include="OpenGL.cs" />
     <Compile Include="Scenes\TransparentCubes.cs" />
     <Compile Include="Scenes\Textured.cs" />
+    <Compile Include="Scenes\TransparentTexture.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenTK, Version=3.0.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
@@ -53,6 +54,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Textures\bricks.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\bricks.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Textures\cloud.png">

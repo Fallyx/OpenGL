@@ -17,6 +17,7 @@ namespace OpenGL
                 Console.WriteLine("[1] Three Cubes");
                 Console.WriteLine("[2] Textured Cube");
                 Console.WriteLine("[3] Transparent Cubes");
+                Console.WriteLine("[4] Transparent Texture");
                 Console.WriteLine("[Q] Quit");
                 Console.WriteLine("");
 
@@ -33,6 +34,10 @@ namespace OpenGL
                 else if (input == "3")
                 {
                     TransparentCubes.Start();
+                }
+                else if (input == "4")
+                {
+                    TransparentTexture.Start();
                 }
             }
         }
